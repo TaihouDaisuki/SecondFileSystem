@@ -1,7 +1,5 @@
 #include <cstring>
 
-#include <iostream>
-
 #include "Kernel.h"
 #include "BufferManager.h"
 
