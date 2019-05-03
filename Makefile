@@ -16,4 +16,4 @@ $(TARGET): $(SOURCE)
 .PHONY: clean
 
 clean:
-	$(RM) $(TARGET) test.img img_out.png
+	$(RM) $(TARGET) myDisk.disk
