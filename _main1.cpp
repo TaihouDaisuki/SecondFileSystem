@@ -18,8 +18,8 @@ SecondFileSystem sfs;
 
 const int TaihouDaisuki = -2; // Mark for test
 
-char *imgbuffer;
-int imgsize; /* >0: wait to write; <0: wait to save */
+char *buffer;
+int buffersize; /* >0: wait to write; <0: wait to save */
 
 void init_spb(SuperBlock &spb)
 {
@@ -156,12 +156,12 @@ void output_help()
 	cout << "*       (Read to buffer)                 *" << endl;
 	cout << "* -fwrite -2 [fd]                        *" << endl;
 	cout << "*        (Write from buffer)             *" << endl;
-	cout << "* -loadimg                               *" << endl;
-	cout << "*       (Load img to buffer from outside)*" << endl;
-	cout << "* -saveimg                               *" << endl;
-	cout << "*       (Save img from buffer to outside)*" << endl;
+	cout << "* -load [filename]                       *" << endl;
+	cout << "*      (Load file to buffer from outside)*" << endl;
+	cout << "* -save [filename]                       *" << endl;
+	cout << "*      (Save file from buffer to outside)*" << endl;
 	cout << "* -check                                 *" << endl;
-	cout << "*       (check the buffer state)         *" << endl;
+	cout << "*      (check the buffer state)          *" << endl;
 	cout << "******************************************" << endl;
 
 	input_flush();
@@ -202,42 +202,42 @@ void fread_work()
 	if(fd == TaihouDaisuki)
 	{
 		cin >> fd >> length;
-		if(imgsize > 0)
+		if(buffersize > 0)
 		{
 			cout << "< Error: Buffer wait to be written >" << endl;
 			input_flush();
 			return;
 		}
-		else if(imgsize < 0)
+		else if(buffersize < 0)
 		{
-			cout << "< Warning: Img has been read >" << endl;
+			cout << "< Warning: File has been read >" << endl;
 			input_flush();
 			return;
 		}
 
-		imgbuffer = new char[length + 1];
-		int res = sfs.fread(fd, imgbuffer, length);
+		buffer = new char[length + 1];
+		int res = sfs.fread(fd, buffer, length);
 		cout << "< Success: Fread returns = " << res << " >" << endl;
 		if(res > 0)
-			imgsize = -res;
+			buffersize = -res;
 		else
 		{
-			imgsize = 0;
-			delete imgbuffer;
-			imgbuffer = NULL;
+			buffersize = 0;
+			delete buffer;
+			buffer = NULL;
 		}
 	}
 	else
 	{
 		cin  >> length;
-		char *buffer= new char[length + 1];
-		memset(buffer, 0, length + 1);
+		char *outputbuffer = new char[length + 1];
+		memset(outputbuffer, 0, length + 1);
 
-		int res = sfs.fread(fd, buffer, length);
+		int res = sfs.fread(fd, outputbuffer, length);
 		cout << "< Success: Fread returns = " << res << " >" << endl;
 		cout << "< Success: The data read are as followed >" << endl;
-		cout << buffer << endl;
-		delete buffer;
+		cout << outputbuffer << endl;
+		delete outputbuffer;
 	}
 
 	input_flush();
@@ -245,44 +245,44 @@ void fread_work()
 void fwrite_work()
 {
 	int fd, length;
-	string buffer;
+	string inputbuffer;
 	cin >> fd;
 
 	if(fd == TaihouDaisuki)
 	{
 		cin >> fd;
-		if(imgsize == 0)
+		if(buffersize == 0)
 		{
-			cout << "< Error: Img hasn't been loaded >" << endl;
+			cout << "< Error: File hasn't been loaded >" << endl;
 			input_flush();
 			return;
 		}
-		else if(imgsize < 0)
+		else if(buffersize < 0)
 		{
 			cout << "< Error: Buffer wait to be saved >" << endl;
 			input_flush();
 			return;
 		}
 
-		int res = sfs.fwrite(fd, imgbuffer, imgsize);
+		int res = sfs.fwrite(fd, buffer, buffersize);
 		cout << "< Success: Fwrite returns = " << res << " >" << endl;
 		
 		if(res > 0)
 		{
-			imgsize = 0;
-			delete imgbuffer;
-			imgbuffer = NULL;
+			buffersize = 0;
+			delete buffer;
+			buffer = NULL;
 		}
 	}
 	else
 	{
-		cin >> buffer >> length;
-		char *buffer_c = new char[buffer.length() + 1];
-		strcpy(buffer_c, buffer.c_str());
+		cin >> inputbuffer >> length;
+		char *inputbuffer_c = new char[inputbuffer.length() + 1];
+		strcpy(inputbuffer_c, inputbuffer.c_str());
 
-		int res = sfs.fwrite(fd, buffer_c, length);
+		int res = sfs.fwrite(fd, inputbuffer_c, length);
 		cout << "< Success: Fwrite returns = " << res << " >" << endl;
-		delete buffer_c;
+		delete inputbuffer_c;
 	}
 
 	input_flush();
@@ -372,87 +372,95 @@ void cd_work()
 /* Test Part */
 void load_work()
 {
-	input_flush();
-
-	if(imgsize > 0)
+	if(buffersize > 0)
 	{
-		cout << "< Warning: Img has been loaded >" << endl;
+		cout << "< Warning: Buffer has been loaded >" << endl;
+		input_flush();
 		return;
 	}
-	else if(imgsize < 0)
+	else if(buffersize < 0)
 	{
-		cout << "< Error: Img wait to be saved > " << endl;
+		cout << "< Error: Buffer wait to be saved > " << endl;
+		input_flush();
 		return;
 	}
 	
+	string filename;
+	cin >> filename;
+	input_flush();
 
-	int imgfd = open("img_in.png", O_RDONLY);
-	if(imgfd == -1)
+	int fd = open(filename.c_str(), O_RDONLY);
+	if(fd == -1)
 	{
-		cout << "< Error: No img file for test >" << endl;
+		cout << "< Error: No file for test >" << endl;
 		return;
 	}
-	struct stat imgst; 
-	int res = fstat(imgfd, &imgst);
+	struct stat st; 
+	int res = fstat(fd, &st);
 	if (res == -1) 
 	{
-		cout << "< Error: Failed to get img file information >" << endl;
-		close(imgfd);
+		cout << "< Error: Failed to get file information >" << endl;
+		close(fd);
 		return;
 	}
 
-	imgsize = imgst.st_size;
-	imgbuffer = new char[imgsize];
-	read(imgfd, imgbuffer, imgsize);
-	cout << "< Attention: Img file loaded successfully >" << endl;
+	buffersize = st.st_size;
+	buffer = new char[buffersize];
+	read(fd, buffer, buffersize);
+	cout << "< Attention: File loaded successfully >" << endl;
 
-	close(imgfd);
+	close(fd);
 }
 void save_work()
 {
-	input_flush();
 
-	if(imgsize > 0)
+	if(buffersize > 0)
 	{
-		cout << "< Error: Img has been loaded >" << endl;
+		cout << "< Error: Buffer has been loaded >" << endl;
+		input_flush();
 		return;
 	}
-	else if(imgsize == 0)
+	else if(buffersize == 0)
 	{
 		cout << "< Error: Empty buffer > " << endl;
+		input_flush();
 		return;
 	}
 
-	int imgfd = open("img_out.png", O_WRONLY | O_CREAT);
-	if(imgfd == -1)
+	string filename;
+	cin >> filename;
+	input_flush();
+
+	int fd = open(filename.c_str(), O_WRONLY | O_CREAT);
+	if(fd == -1)
 	{
 		cout << "< Error: Fail to create file >" << endl;
 		return;
 	}
 
-	write(imgfd, imgbuffer, -imgsize);
-	cout << "< Attention: Img file saved successfully >" << endl;
+	write(fd, buffer, -buffersize);
+	cout << "< Attention: Buffer saved successfully >" << endl;
 
-	delete imgbuffer;
-	imgbuffer = NULL;
-	imgsize = 0;
-	close(imgfd);
+	delete buffer;
+	buffer = NULL;
+	buffersize = 0;
+	close(fd);
 }
 void check_work()
 {
 	input_flush();
 
-	if(imgsize == 0)
+	if(buffersize == 0)
 	{
 		cout << "< Attention: Buffer is empty >" << endl;
 	}
-	else if(imgsize > 0)
+	else if(buffersize > 0)
 	{
-		cout << "< Attention: Buffer has been loaded, size = " << imgsize << " >" << endl;
+		cout << "< Attention: Buffer has been loaded, size = " << buffersize << " >" << endl;
 	}
 	else /* img size < 0 */
 	{
-		cout << " < Attention: Buffer wait to be saved, size = " << imgsize << " >" << endl;
+		cout << " < Attention: Buffer wait to be saved, size = " << buffersize << " >" << endl;
 	}
 }
 
@@ -485,8 +493,8 @@ int main()
 
 	Kernel::Instance().Initialize((char*)addr);
 	initSFS();
-	imgbuffer = NULL;
-	imgsize = 0;
+	buffer = NULL;
+	buffersize = 0;
 
 	/*************************************************************************/
 
@@ -585,13 +593,13 @@ int main()
 			break;
 		}
 
-		if (!strcmp(command.c_str(), "loadimg"))
+		if (!strcmp(command.c_str(), "load"))
 		{
 			load_work();
 			continue;
 		}
 
-		if (!strcmp(command.c_str(), "saveimg"))
+		if (!strcmp(command.c_str(), "save"))
 		{
 			save_work();
 			continue;
@@ -608,8 +616,8 @@ int main()
 	}
 
 	close(fd);
-	if(imgbuffer != NULL)
-		delete imgbuffer;
+	if(buffer != NULL)
+		delete buffer;
 
 	return 0;
 }
