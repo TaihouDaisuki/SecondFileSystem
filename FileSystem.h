@@ -51,11 +51,11 @@ public:
 
 	static const int INODE_NUMBER_PER_SECTOR = 8;		/* 外存INode对象长度为64字节，每个磁盘块可以存放512/64 = 8个外存Inode */
 	static const int INODE_ZONE_START_SECTOR = 2;		/* 外存Inode区位于磁盘上的起始扇区号 */
-	static const int INODE_ZONE_SIZE = /* 1024 - 202 */ 27 - 2;		/* 磁盘上外存Inode区占据的扇区数 */
+	static const int INODE_ZONE_SIZE = /* 1024 - 202 */ 1000 - 2;		/* 磁盘上外存Inode区占据的扇区数 */
 
-	static const int DATA_ZONE_START_SECTOR = /* 1024 */ 27;		/* 数据区的起始扇区号 */
-	static const int DATA_ZONE_END_SECTOR = /* 18000 - 1 */ 1000 - 1;	/* 数据区的结束扇区号 */
-	static const int DATA_ZONE_SIZE = 1000 - DATA_ZONE_START_SECTOR;	/* 数据区占据的扇区数量 */
+	static const int DATA_ZONE_START_SECTOR = /* 1024 */ 1000;		/* 数据区的起始扇区号 */
+	static const int DATA_ZONE_END_SECTOR = /* 18000 - 1 */ 10000 - 1;	/* 数据区的结束扇区号 */
+	static const int DATA_ZONE_SIZE = 10000 - DATA_ZONE_START_SECTOR;	/* 数据区占据的扇区数量 */
 
 	/* Functions */
 public:
